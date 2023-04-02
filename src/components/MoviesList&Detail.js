@@ -1,63 +1,67 @@
-import React, { useEffect, useMemo, useState } from "react";
-import "../styles/App.css";
-import SearchBar from "./SearchBar";
-import { MoviesList, MovieDetails } from "./MoviesList&Detail";
-const App = () => {
-    const [movies, setMovies] = useState([]);
-    const [searchTitle, setSearchTitle] = useState("");
-    const [sortBy, setSortBy] = useState("ascending");
-    const [selectedMovie, setSelectedMovie] = useState(null);
+import React, { useState, useEffect } from "react";
+import { getMovieById } from "./api";
 
-    // Sorting Movies by Release Year Logic
-    const sortedMovies = useMemo(() => {
-        if (movies.length === 0) {
-            return [];
-        }
-        return movies.sort((firstMovie, secondMovie) => {
-            const firstYear = firstMovie.release_date.split("-")[0];
-            const secondYear = secondMovie.release_date.split("-")[0];
-            const first = parseInt(firstYear);
-            const second = parseInt(secondYear);
-            if (sortBy === "descending") {
-                return first - second;
-            } else {
-                return second - first;
-            }
-        });
-    }, [movies, sortBy]);
-    const handleSort = () => {
-        const sortedList = sortedMovies;
-        console.log(sortedList);
-        setMovies(sortedList);
-        setSortBy((prev) => {
-            if (prev === "ascending") {
-                return "descending";
-            }
-            return "ascending";
+const MoviesList = (props) => {
+    const { movies, setSelectedMovie } = props;
+    const handleClick = (event, id) => {
+        console.log("movie clicked", id);
+        getMovieById(id).then((data) => {
+            console.log(data);
+            setSelectedMovie(data);
         });
     };
-    useEffect(() => {
-        console.log("movies modified", movies);
-    }, [movies]);
-
+    console.log(movies);
     return (
-        <div id="main">
-            <h1>Movie Search</h1>
-            <SearchBar setMovies={setMovies} />
-            <button onClick={handleSort} className="sort-btn">
-                Sort Movies by release year ({sortBy})
-            </button>
-            <MoviesList setSelectedMovie={setSelectedMovie} movies={movies} />
-            {selectedMovie && (
-                <section className="movie-details">
-                    <MovieDetails
-                        setSelectedMovie={setSelectedMovie}
-                        selectedMovie={selectedMovie}
-                    />
-                </section>
-            )}
-        </div>
+        <ul>
+            {movies.map((movie, index) => {
+                return (
+                    <li onClick={(e) => handleClick(e, movie.id)} key={index}>
+                        <img
+                            src={`https://image.tmdb.org/t/p/w200${movie?.poster_path}`}
+                            alt="movie-alt"
+                        />
+                        <section className="title-year">
+                            <h2 className="movie-title">{movie.title}</h2>
+                            <p className="movie-release-year">
+                                Release Year: {movie.release_date.slice(0, 4)}
+                            </p>
+                        </section>
+                    </li>
+                );
+            })}
+        </ul>
     );
 };
 
-export default App;
+const MovieDetails = ({ selectedMovie, setSelectedMovie }) => {
+    const [movieDetails, setMovieDetails] = useState(null);
+    const handleClose = () => {
+        setSelectedMovie(null);
+    };
+    useEffect(() => {
+        setMovieDetails(selectedMovie);
+    }, []);
+    return (
+        <article className="movie-details">
+            <section className="movie-detail-img">
+                <img
+                    src={`https://image.tmdb.org/t/p/w200${selectedMovie?.poster_path}`} //
+                    alt="movie-poster-alt"
+                    className="movie-img"
+                />
+            </section>
+            <section className="movie-detail-title-year-plot">
+                <h2 className="movie-title-year">
+                    {selectedMovie.title} (
+                    {selectedMovie.release_date.slice(0, 4) || "0000"})
+                </h2>
+                <p className="movie-plot">{selectedMovie.overview}</p>
+                <button onClick={handleClose} className="close-btn">
+                    Close
+                </button>
+            </section>
+        </article>
+    );
+};
+
+export { MoviesList, MovieDetails };
